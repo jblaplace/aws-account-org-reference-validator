@@ -4,8 +4,8 @@ import botocore
 from botocore.config import Config
 
 """
-This scripts validates identify resource policies in the account that reference the PrincipalOrg attribute.
-Policies that do reference that attribute will be broken once the account moves under a new organization:
+This scripts helps in identifings resource policies in the account that reference the PrincipalOrg attributes (PrincipalOrgID and PrincipalOrgPaths).
+Policies that do reference those attributes will be broken once the account moves under a new organization:
 
 Ref: "If you use the aws:PrincipalOrgID condition key in your resource-based policies to restrict access only 
 to the principals from AWS accounts in your Organization, 
@@ -426,6 +426,31 @@ def CloudWatchLogsDestinationValidator():
             continue
 
 
+def APIGatewayValidator():
+    for region in REGIONS:
+        config = Config(region_name=region)
+        client = boto3.client('apigateway', config=config)
+        print('Validation API Gateway',
+              region, 'Resource Policy')
+        try:
+            paginator = client.get_paginator('get_rest_apis')
+            count = 0
+            for page in paginator.paginate():
+                for item in page['items']:
+                    count = count + 1
+                    print('\tValidation %i' % (count))
+                    if 'policy' in item.keys():
+                        policy = item['policy']
+
+                        if KEY_WORD in policy:
+                            print('\API:', item['name'])
+                            print('\tPolicy Doc:', policy)
+
+        except botocore.exceptions.ClientError as exception:
+            print('\tError', exception)
+            continue
+
+
 IAMRoleValidator()
 IAMCustomerManagedValidator()
 S3Validator()
@@ -444,3 +469,4 @@ KMSValidator()
 LexV2Validator()
 CloudWatchLogsValidator()
 CloudWatchLogsDestinationValidator()
+APIGatewayValidator()
