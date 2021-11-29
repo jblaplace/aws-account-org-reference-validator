@@ -451,22 +451,50 @@ def APIGatewayValidator():
             continue
 
 
-IAMRoleValidator()
-IAMCustomerManagedValidator()
-S3Validator()
-S3GlacierValidator()
-LambdaValidator()
-ECRValidator()
-BackupVaultValidator()
-EFSValidator()
-CodeArtifactDomainValidator()
-CodeArtifactRepositoryValidator()
-Cloud9Validator()
-CodeBuildValidator()
-SecretsManagerValidator()
-AcmePrivateValidator()
-KMSValidator()
-LexV2Validator()
-CloudWatchLogsValidator()
-CloudWatchLogsDestinationValidator()
-APIGatewayValidator()
+def VPCEndPointValidator():
+    for region in REGIONS:
+        config = Config(region_name=region)
+        client = boto3.client('ec2', config=config)
+        print('Validation VPC Endpoint',
+              region, 'Resource Policy')
+        try:
+            paginator = client.get_paginator('describe_vpc_endpoints')
+            count = 0
+            for page in paginator.paginate():
+
+                for item in page['VpcEndpoints']:
+                    count = count + 1
+                    print('\tValidation %i' % (count))
+                    if 'PolicyDocument' in item.keys():
+                        policy = item['PolicyDocument']
+
+                        if KEY_WORD in policy:
+                            print('\VPC Endpoint:', item['ServiceName'])
+                            print('\tPolicy Doc:', policy)
+
+        except botocore.exceptions.ClientError as exception:
+            print('\tError', exception)
+            continue
+
+
+# IAMRoleValidator()
+# IAMCustomerManagedValidator()
+# S3Validator()
+# S3GlacierValidator()
+# LambdaValidator()
+# ECRValidator()
+# BackupVaultValidator()
+# EFSValidator()
+# CodeArtifactDomainValidator()
+# CodeArtifactRepositoryValidator()
+# Cloud9Validator()
+# CodeBuildValidator()
+# SecretsManagerValidator()
+# AcmePrivateValidator()
+# KMSValidator()
+# LexV2Validator()
+# CloudWatchLogsValidator()
+# CloudWatchLogsDestinationValidator()
+# APIGatewayValidator()
+
+VPCEndPointValidator()
