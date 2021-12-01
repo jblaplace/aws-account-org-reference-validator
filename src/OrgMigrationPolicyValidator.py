@@ -544,6 +544,31 @@ def OpenSearchValidator():
             continue
 
 
+def GlueDataCatalogValidator():
+    for region in REGIONS:
+        config = Config(region_name=region)
+        client = boto3.client('glue', config=config)
+        print('Glue',
+              region, 'Resource Policy')
+        try:
+            paginator = client.get_paginator('get_resource_policies')
+            count = 0
+            for page in paginator.paginate():
+
+                for item in page['GetResourcePoliciesResponseList']:
+                    count = count + 1
+                    print('\tValidation %i' % (count))
+                    if 'PolicyInJson' in item.keys():
+                        policy = item['PolicyInJson']
+
+                        if KEY_WORD in policy:
+                            print('\tPolicy Doc:', policy)
+
+        except botocore.exceptions.ClientError as exception:
+            print('\tError', exception)
+            continue
+
+
 IAMRoleValidator()
 IAMCustomerManagedValidator()
 S3Validator()
@@ -566,3 +591,4 @@ APIGatewayValidator()
 VPCEndPointValidator()
 MediaStoreValidator()
 OpenSearchValidator()
+GlueDataCatalogValidator()
