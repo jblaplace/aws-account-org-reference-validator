@@ -21,6 +21,7 @@ Author: Jean-Baptiste Laplace
 KEY_WORD = "PrincipalOrg"
 REGIONS = ['ca-central-1', 'us-east-1']
 CODE_ARTIFACT_UNSUPPORTED_REGIONS = ['ca-central-1']
+MEDIA_STORE_UNSUPPORTED_REGIONS = ['ca-central-1']
 
 
 def IAMCustomerManagedValidator():
@@ -265,6 +266,8 @@ def CodeArtifactDomainValidator():
                         continue
                     except Exception as exception:
                         print('\tError', exception)
+        else:
+            print('Validation CodeArtifact Domains', region, ' SKIPPED.')
 
 
 def CodeArtifactRepositoryValidator():
@@ -295,6 +298,8 @@ def CodeArtifactRepositoryValidator():
                         continue
                     except Exception as exception:
                         print('\tError', exception)
+        else:
+            print('Validation CodeArtifact Repositories', region, ' SKIPPED.')
 
 
 def SecretsManagerValidator():
@@ -469,12 +474,45 @@ def VPCEndPointValidator():
                         policy = item['PolicyDocument']
 
                         if KEY_WORD in policy:
-                            print('\VPC Endpoint:', item['ServiceName'])
+                            print('\tVPC Endpoint:', item['ServiceName'])
                             print('\tPolicy Doc:', policy)
 
         except botocore.exceptions.ClientError as exception:
             print('\tError', exception)
             continue
+
+
+def MediaStoreValidator():
+    for region in REGIONS:
+        if region not in MEDIA_STORE_UNSUPPORTED_REGIONS:
+            config = Config(region_name=region)
+            client = boto3.client('mediastore', config=config)
+            print('MediaStore',
+                  region, 'Resource Policy')
+            try:
+                paginator = client.get_paginator('list_containers')
+                count = 0
+                for page in paginator.paginate():
+                    for item in page['Containers']:
+                        count = count + 1
+                        print('\tValidation %i' % (count))
+                        if 'Name' in item.keys():
+                            try:
+                                policy = client.get_container_policy(
+                                    ContainerName=item['Name']
+                                )
+
+                                if KEY_WORD in json.dumps(policy):
+                                    print('\Container:', item['Name'])
+                                    print('\tPolicy Doc:', policy)
+                            except client.exceptions.PolicyNotFoundException:
+                                continue
+
+            except botocore.exceptions.ClientError as exception:
+                print('\tError', exception)
+                continue
+        else:
+            print('MediaStore', region, 'SKIPPED')
 
 
 # IAMRoleValidator()
@@ -496,5 +534,5 @@ def VPCEndPointValidator():
 # CloudWatchLogsValidator()
 # CloudWatchLogsDestinationValidator()
 # APIGatewayValidator()
-
-VPCEndPointValidator()
+# VPCEndPointValidator()
+MediaStoreValidator()
