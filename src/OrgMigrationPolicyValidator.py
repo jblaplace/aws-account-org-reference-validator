@@ -515,24 +515,54 @@ def MediaStoreValidator():
             print('MediaStore', region, 'SKIPPED')
 
 
-# IAMRoleValidator()
-# IAMCustomerManagedValidator()
-# S3Validator()
-# S3GlacierValidator()
-# LambdaValidator()
-# ECRValidator()
-# BackupVaultValidator()
-# EFSValidator()
-# CodeArtifactDomainValidator()
-# CodeArtifactRepositoryValidator()
-# Cloud9Validator()
-# CodeBuildValidator()
-# SecretsManagerValidator()
-# AcmePrivateValidator()
-# KMSValidator()
-# LexV2Validator()
-# CloudWatchLogsValidator()
-# CloudWatchLogsDestinationValidator()
-# APIGatewayValidator()
-# VPCEndPointValidator()
+def OpenSearchValidator():
+    for region in REGIONS:
+        config = Config(region_name=region)
+        client = boto3.client('opensearch', config=config)
+        print('OpenSearch',
+              region, 'Resource Policy')
+        try:
+            domains = client.list_domain_names()
+            count = 0
+
+            for item in domains['DomainNames']:
+                count = count + 1
+                print('\tValidation %i' % (count))
+                if 'DomainName' in item.keys():
+                    domain = client.describe_domain(
+                        DomainName=item['DomainName']
+                    )
+
+                    policy = domain['DomainStatus']['AccessPolicies']
+
+                    if KEY_WORD in policy:
+                        print('\Domain:', item['DomainName'])
+                        print('\tPolicy Doc:', policy)
+
+        except botocore.exceptions.ClientError as exception:
+            print('\tError', exception)
+            continue
+
+
+IAMRoleValidator()
+IAMCustomerManagedValidator()
+S3Validator()
+S3GlacierValidator()
+LambdaValidator()
+ECRValidator()
+BackupVaultValidator()
+EFSValidator()
+CodeArtifactDomainValidator()
+CodeArtifactRepositoryValidator()
+Cloud9Validator()
+CodeBuildValidator()
+SecretsManagerValidator()
+AcmePrivateValidator()
+KMSValidator()
+LexV2Validator()
+CloudWatchLogsValidator()
+CloudWatchLogsDestinationValidator()
+APIGatewayValidator()
+VPCEndPointValidator()
 MediaStoreValidator()
+OpenSearchValidator()
