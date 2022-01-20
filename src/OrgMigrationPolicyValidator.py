@@ -569,6 +569,38 @@ def GlueDataCatalogValidator():
             continue
 
 
+def EventBridgeSchemaRegistryValidator():
+    for region in REGIONS:
+        config = Config(region_name=region)
+        client = boto3.client('schemas', config=config)
+        print('EventBridge Schema Registry',
+              region, 'Resource Policy')
+        try:
+            paginator = client.get_paginator('list_registries')
+            count = 0
+            for page in paginator.paginate():
+                for item in page['Registries']:
+                    count = count + 1
+                    try:
+                        policy = client.get_resource_policy(
+                            RegistryName=item['RegistryName'])
+                        print('\tValidation %i' % (count))
+                        if 'Policy' in policy.keys():
+                            policy = policy['Policy']
+
+                            if KEY_WORD in policy:
+                                print('\t'+item['RegistryName'] +
+                                      ' Policy Doc:', policy)
+                    except client.exceptions.ForbiddenException:
+                        continue
+                    except:
+                        print('\tError', exception)
+
+        except botocore.exceptions.ClientError as exception:
+            print('\tError', exception)
+            continue
+
+
 IAMRoleValidator()
 IAMCustomerManagedValidator()
 S3Validator()
@@ -592,3 +624,4 @@ VPCEndPointValidator()
 MediaStoreValidator()
 OpenSearchValidator()
 GlueDataCatalogValidator()
+EventBridgeSchemaRegistryValidator()
