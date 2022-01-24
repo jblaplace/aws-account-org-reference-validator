@@ -1,3 +1,4 @@
+from shutil import ExecError
 import boto3
 import json
 import botocore
@@ -7,8 +8,8 @@ from botocore.config import Config
 This scripts helps in identifings resource policies in the account that reference the PrincipalOrg attributes (PrincipalOrgID and PrincipalOrgPaths).
 Policies that do reference those attributes will be broken once the account moves under a new organization:
 
-Ref: "If you use the aws:PrincipalOrgID condition key in your resource-based policies to restrict access only 
-to the principals from AWS accounts in your Organization, 
+Ref: "If you use the aws:PrincipalOrgID condition key in your resource-based policies to restrict access only
+to the principals from AWS accounts in your Organization,
 then you must change these policies before moving the member account to another Organization."
 
 https://aws.amazon.com/premiumsupport/knowledge-center/organizations-move-accounts/
@@ -593,7 +594,7 @@ def EventBridgeSchemaRegistryValidator():
                                       ' Policy Doc:', policy)
                     except client.exceptions.ForbiddenException:
                         continue
-                    except:
+                    except Exception as exception:
                         print('\tError', exception)
 
         except botocore.exceptions.ClientError as exception:
@@ -601,27 +602,95 @@ def EventBridgeSchemaRegistryValidator():
             continue
 
 
-IAMRoleValidator()
-IAMCustomerManagedValidator()
-S3Validator()
-S3GlacierValidator()
-LambdaValidator()
-ECRValidator()
-BackupVaultValidator()
-EFSValidator()
-CodeArtifactDomainValidator()
-CodeArtifactRepositoryValidator()
-Cloud9Validator()
-CodeBuildValidator()
-SecretsManagerValidator()
-AcmePrivateValidator()
-KMSValidator()
-LexV2Validator()
-CloudWatchLogsValidator()
-CloudWatchLogsDestinationValidator()
-APIGatewayValidator()
-VPCEndPointValidator()
-MediaStoreValidator()
-OpenSearchValidator()
-GlueDataCatalogValidator()
-EventBridgeSchemaRegistryValidator()
+def SNSValidator():
+    for region in REGIONS:
+        config = Config(region_name=region)
+        client = boto3.client('sns', config=config)
+        print('SNS',
+              region, 'Access Policy')
+        try:
+            paginator = client.get_paginator('list_topics')
+            count = 0
+            for page in paginator.paginate():
+                for item in page['Topics']:
+                    count = count + 1
+                    try:
+                        topic = client.get_topic_attributes(
+                            TopicArn=item['TopicArn']
+                        )
+                        print('\tValidation %i' % (count))
+
+                        if 'Policy' in topic['Attributes'].keys():
+                            policy = topic['Attributes']['Policy']
+                            if KEY_WORD in policy:
+                                print('\t'+item['TopicArn'] +
+                                      ' Policy Doc:', policy)
+                    except client.exceptions.ForbiddenException:
+                        continue
+                    except Exception as exception:
+                        print('\tError', exception)
+
+        except botocore.exceptions.ClientError as exception:
+            print('\tError', exception)
+            continue
+
+
+def SQSValidator():
+    for region in REGIONS:
+        config = Config(region_name=region)
+        client = boto3.client('sqs', config=config)
+        print('SQS',
+              region, 'Access Policy')
+        try:
+            paginator = client.get_paginator('list_queues')
+            count = 0
+            for page in paginator.paginate():
+                if 'QueueUrls' in page.keys():
+                    for item in page['QueueUrls']:
+                        count = count + 1
+                        try:
+                            attributes = client.get_queue_attributes(
+                                QueueUrl=item, AttributeNames=['Policy'])
+
+                            print('\tValidation %i' % (count))
+
+                            if 'Policy' in attributes['Attributes'].keys():
+                                policy = attributes['Attributes']['Policy']
+                                if KEY_WORD in policy:
+                                    print('\t'+item +
+                                          ' Policy Doc:', policy)
+
+                        except Exception as exception:
+                            print('\tError', exception)
+
+        except botocore.exceptions.ClientError as exception:
+            print('\tError', exception)
+            continue
+
+
+# IAMRoleValidator()
+# IAMCustomerManagedValidator()
+# S3Validator()
+# S3GlacierValidator()
+# LambdaValidator()
+# ECRValidator()
+# BackupVaultValidator()
+# EFSValidator()
+# CodeArtifactDomainValidator()
+# CodeArtifactRepositoryValidator()
+# Cloud9Validator()
+# CodeBuildValidator()
+# SecretsManagerValidator()
+# AcmePrivateValidator()
+# KMSValidator()
+# LexV2Validator()
+# CloudWatchLogsValidator()
+# CloudWatchLogsDestinationValidator()
+# APIGatewayValidator()
+# VPCEndPointValidator()
+# MediaStoreValidator()
+# OpenSearchValidator()
+# GlueDataCatalogValidator()
+# EventBridgeSchemaRegistryValidator()
+# SNSValidator()
+SQSValidator()
